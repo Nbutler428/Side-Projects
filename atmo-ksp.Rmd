@@ -1,0 +1,56 @@
+---
+title: "Untitled"
+output: html_document
+date: "2023-04-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse,data.table, dplyr, arules, arulesViz, datasets, janitor, stringr,DT,ggpubr,viridis,lubridate, reactable,infer,colorspace,gtsummary,webshot,formattable,summarytools,car,FSA, rjson, jsonlite)
+```
+
+```{r}
+json_text <- readLines("TimeSeries-329.JSON")
+atmo_data <- jsonlite::fromJSON(json_text, simplifyDataFrame = TRUE)
+```
+```{r}
+atmo_data %>% 
+  slice(1) %>% 
+  unnest(values) -> alti_data
+```
+
+
+```{r}
+alti_data$sec <- alti_data$ut - 80.02
+alti_data$sec <- as.numeric(alti_data$sec)
+```
+```{r}
+alti_data$sec <- round(alti_data$sec, 2)
+alti_data
+```
+```{r}
+ggplot() + geom_smooth(data = alti_data, aes(x=sec, y=avg)) + scale_y_continuous(labels = scales::label_comma())
+```
+
+```{r}
+select(alti_data, "sec", "avg") -> alti_data
+alti_data$sec<-floor(alti_data$sec*1)/1
+alti_data$id <- seq.int(nrow(alti_data))
+```
+```{r}
+alti_data %>% 
+  mutate(atmo = case_when(avg < 12000 ~ "Tropo",
+            avg >= 12000 & avg < 18000 ~ "Strato",
+         avg > 20000 & avg < 50000 ~ "Mesosphere",
+         avg > 50000 & avg < 70000 ~ "Exosphere",
+         avg > 70000 ~ "Space")) -> alti_data
+```
+
+
+```{r}
+ggplot() + geom_smooth(data = alti_data, aes(x=sec, y=avg)) + scale_y_continuous(labels = scales::label_comma()) + geom_point(data = alti_data, aes(x=sec, y=avg, fill=atmo))
+```
+
